@@ -1,26 +1,27 @@
 name: WelcomeWarpSigns
 main: com.wasteofplastic.wwarps.WWarps
-version: ${version}
+version: 1.5 # Updated version
+api-version: 1.13 # Added to ensure compatibility with modern Bukkit
 description: Easy to use warp signs for players
 author: tastybento
 commands:
-    wwarp:
-       description: Show Welcome Warp Signs
-       aliases: wwarps
-       usage:  |
-             /wwarp to list warps, /wwarp <name> to warp 
-    wwadmin:
-        description: Admin Command for Warp Signs
-        aliases: wadmin
-        usage:  |
-             /wadmin to list help
-permissions:    
+  wwarp:
+    description: Show Welcome Warp Signs
+    aliases: wwarps
+    usage:  |
+      /wwarp to list warps, /wwarp <name> to warp
+  wwadmin:
+    description: Admin Command for Warp Signs
+    aliases: wadmin
+    usage:  |
+      /wadmin to list help
+permissions:
   welcomewarpsigns.add:
-     description: Permission to add warp signs
-     default: true
+    description: Permission to add warp signs
+    default: true
   welcomewarpsigns.use:
-     description: Permission to use welcome warp signs
-     default: true
+    description: Permission to use welcome warp signs
+    default: true
   welcomewarpsigns.admin:
-     description: Permission to admin warp signs
-     default: op
+    description: Permission to admin warp signs
+    default: op
