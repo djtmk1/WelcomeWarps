@@ -3,7 +3,7 @@ package com.wasteofplastic.wwarps.commands;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Tag; // Import for Tag.SIGNS
+import org.bukkit.Tag;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.wasteofplastic.wwarps.Settings;
 import com.wasteofplastic.wwarps.WWarps;
@@ -44,9 +45,7 @@ public class WarpCmd implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] split) {
-        if (!(sender instanceof Player)) {
-            return false;
-        }
+        if (!(sender instanceof Player)) return false;
         final Player player = (Player) sender;
         final UUID playerUUID = player.getUniqueId();
 
@@ -75,14 +74,9 @@ public class WarpCmd implements CommandExecutor, TabCompleter {
                 boolean hasWarp = false;
                 for (UUID w : warpList) {
                     String name = plugin.getServer().getOfflinePlayer(w).getName();
-                    if (wlist.length() == 0) {
-                        wlist.append(name);
-                    } else {
-                        wlist.append(", ").append(name);
-                    }
-                    if (w.equals(playerUUID)) {
-                        hasWarp = true;
-                    }
+                    if (wlist.length() == 0) wlist.append(name);
+                    else wlist.append(", ").append(name);
+                    if (w.equals(playerUUID)) hasWarp = true;
                 }
                 player.sendMessage(ChatColor.YELLOW + plugin.myLocale().warpswarpsAvailable + ": " + ChatColor.WHITE + wlist);
                 if (!hasWarp && player.hasPermission(Settings.PERMPREFIX + "addwarp")) {
@@ -128,7 +122,7 @@ public class WarpCmd implements CommandExecutor, TabCompleter {
                 return true;
             }
             Block b = warpSpot.getBlock();
-            if (Tag.SIGNS.isTagged(b.getType())) { // Replaces SIGN and WALL_SIGN
+            if (Tag.SIGNS.isTagged(b.getType())) {
                 Sign sign = (Sign) b.getState();
                 BlockFace directionFacing = ((org.bukkit.block.data.type.Sign) sign.getBlockData()).getRotation();
                 Location inFront = b.getRelative(directionFacing).getLocation();
@@ -136,7 +130,7 @@ public class WarpCmd implements CommandExecutor, TabCompleter {
                 if (WWarps.isSafeLocation(inFront)) {
                     warpPlayer(player, inFront, foundWarp, directionFacing);
                     return true;
-                } else if (Tag.SIGNS.isTagged(b.getType()) && WWarps.isSafeLocation(oneDown)) { // Replaces WALL_SIGN check
+                } else if (Tag.SIGNS.isTagged(b.getType()) && WWarps.isSafeLocation(oneDown)) {
                     warpPlayer(player, oneDown, foundWarp, directionFacing);
                     return true;
                 }
@@ -147,7 +141,7 @@ public class WarpCmd implements CommandExecutor, TabCompleter {
             }
             if (!WWarps.isSafeLocation(warpSpot)) {
                 player.sendMessage(ChatColor.RED + plugin.myLocale().warpserrorNotSafe);
-                if (Tag.SIGNS.isTagged(b.getType())) { // Replaces SIGN check
+                if (Tag.SIGNS.isTagged(b.getType())) {
                     plugin.getLogger().warning("Unsafe warp found at " + warpSpot.toString() + " owned by " + plugin.getServer().getOfflinePlayer(foundWarp).getName());
                 }
                 return true;
@@ -173,19 +167,13 @@ public class WarpCmd implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(final CommandSender sender, final Command command, final String label, final String[] args) {
-        List<String> options = new ArrayList<>();
-        if (!(sender instanceof Player) || !label.equalsIgnoreCase("wwarp") || !((Player) sender).hasPermission(Settings.PERMPREFIX + "use")) {
-            return options;
+        if (!(sender instanceof Player) || !label.equalsIgnoreCase("wwarp") || !((Player) sender).hasPermission(Settings.PERMPREFIX + "use") || args.length != 1) {
+            return new ArrayList<>();
         }
-        if (args.length == 1) {
-            Set<UUID> warpList = plugin.getWarpSignsListener().listWarps();
-            for (UUID warp : warpList) {
-                String name = plugin.getServer().getOfflinePlayer(warp).getName();
-                if (name != null) {
-                    options.add(name);
-                }
-            }
-        }
-        return Util.tabLimit(options, args.length > 0 ? args[args.length - 1] : "");
+        String prefix = args[0].toLowerCase();
+        return plugin.getWarpSignsListener().listWarps().stream()
+                .map(uuid -> plugin.getServer().getOfflinePlayer(uuid).getName())
+                .filter(name -> name != null && name.toLowerCase().startsWith(prefix))
+                .collect(Collectors.toList());
     }
 }

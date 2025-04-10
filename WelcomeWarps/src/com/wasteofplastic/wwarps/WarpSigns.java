@@ -3,7 +3,7 @@ package com.wasteofplastic.wwarps;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Tag; // Import for Tag.SIGNS
+import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -27,11 +27,13 @@ import com.wasteofplastic.wwarps.util.Util;
 public class WarpSigns implements Listener {
 	private final WWarps plugin;
 	private final HashMap<UUID, Location> warpList;
+	private final HashMap<Location, UUID> locationToOwner; // New reverse mapping
 	private YamlConfiguration welcomeWarps;
 
 	public WarpSigns(WWarps plugin) {
 		this.plugin = plugin;
 		this.warpList = new HashMap<>();
+		this.locationToOwner = new HashMap<>();
 	}
 
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
@@ -39,9 +41,9 @@ public class WarpSigns implements Listener {
 		Block b = e.getBlock();
 		Player player = e.getPlayer();
 		if (Settings.worldName.isEmpty() || Settings.worldName.contains(b.getWorld().getName())) {
-			if (Tag.SIGNS.isTagged(b.getType())) { // Replaces SIGN and WALL_SIGN
+			if (Tag.SIGNS.isTagged(b.getType())) {
 				Sign s = (Sign) b.getState();
-				if (s.getLines()[0].equalsIgnoreCase(ChatColor.GREEN + plugin.myLocale().warpswelcomeLine)) { // Updated getLine(0)
+				if (s.getLines()[0].equalsIgnoreCase(ChatColor.GREEN + plugin.myLocale().warpswelcomeLine)) {
 					if (warpList.containsValue(s.getLocation())) {
 						if (warpList.containsKey(player.getUniqueId()) && warpList.get(player.getUniqueId()).equals(s.getLocation())) {
 							removeWarp(s.getLocation());
@@ -88,10 +90,10 @@ public class WarpSigns implements Listener {
 				}
 			} else {
 				Block oldSignBlock = oldSignLoc.getBlock();
-				if (Tag.SIGNS.isTagged(oldSignBlock.getType())) { // Replaces SIGN and WALL_SIGN
+				if (Tag.SIGNS.isTagged(oldSignBlock.getType())) {
 					Sign oldSign = (Sign) oldSignBlock.getState();
-					if (oldSign.getLines()[0].equalsIgnoreCase(ChatColor.GREEN + plugin.myLocale().warpswelcomeLine)) { // Updated getLine(0)
-						oldSign.setLine(0, ChatColor.RED + plugin.myLocale().warpswelcomeLine); // Still works, but deprecated
+					if (oldSign.getLines()[0].equalsIgnoreCase(ChatColor.GREEN + plugin.myLocale().warpswelcomeLine)) {
+						oldSign.setLine(0, ChatColor.RED + plugin.myLocale().warpswelcomeLine);
 						oldSign.update();
 						player.sendMessage(ChatColor.RED + plugin.myLocale().warpsdeactivate);
 						removeWarp(player.getUniqueId());
@@ -109,9 +111,7 @@ public class WarpSigns implements Listener {
 	}
 
 	public void saveWarpList(boolean reloadPanel) {
-		if (warpList == null || welcomeWarps == null) {
-			return;
-		}
+		if (warpList == null || welcomeWarps == null) return;
 		final HashMap<String, Object> warps = new HashMap<>();
 		for (UUID p : warpList.keySet()) {
 			warps.put(p.toString(), Util.getStringLocation(warpList.get(p)));
@@ -135,8 +135,9 @@ public class WarpSigns implements Listener {
 				UUID playerUUID = UUID.fromString(s);
 				Location l = Util.getLocationString((String) temp.get(s));
 				Block b = l.getBlock();
-				if (Tag.SIGNS.isTagged(b.getType())) { // Replaces SIGN and WALL_SIGN
+				if (Tag.SIGNS.isTagged(b.getType())) {
 					warpList.put(playerUUID, l);
+					locationToOwner.put(l, playerUUID); // Populate reverse map
 				} else {
 					plugin.getLogger().warning("Warp at location " + temp.get(s) + " has no sign - removing.");
 				}
@@ -148,52 +149,49 @@ public class WarpSigns implements Listener {
 	}
 
 	public boolean addWarp(UUID player, Location loc) {
-		if (warpList.containsValue(loc)) {
-			return false;
-		}
-		if (warpList.containsKey(player)) {
-			warpList.remove(player);
-		}
+		if (warpList.containsValue(loc)) return false;
+		Location oldLoc = warpList.remove(player);
+		if (oldLoc != null) locationToOwner.remove(oldLoc); // Clean up old location
 		warpList.put(player, loc);
+		locationToOwner.put(loc, player); // Update reverse map
 		saveWarpList(true);
 		return true;
 	}
 
 	public void removeWarp(UUID uuid) {
-		if (warpList.containsKey(uuid)) {
-			popSign(warpList.get(uuid));
+		Location loc = warpList.get(uuid);
+		if (loc != null) {
+			popSign(loc);
 			warpList.remove(uuid);
+			locationToOwner.remove(loc); // Sync reverse map
+			saveWarpList(true);
 		}
-		saveWarpList(true);
 	}
 
 	private void popSign(Location loc) {
 		Block b = loc.getBlock();
-		if (Tag.SIGNS.isTagged(b.getType())) { // Replaces SIGN and WALL_SIGN
+		if (Tag.SIGNS.isTagged(b.getType())) {
 			Sign s = (Sign) b.getState();
-			if (s.getLines()[0].equalsIgnoreCase(ChatColor.GREEN + plugin.myLocale().warpswelcomeLine)) { // Updated getLine(0)
-				s.setLine(0, ChatColor.RED + plugin.myLocale().warpswelcomeLine); // Still works, but deprecated
+			if (s.getLines()[0].equalsIgnoreCase(ChatColor.GREEN + plugin.myLocale().warpswelcomeLine)) {
+				s.setLine(0, ChatColor.RED + plugin.myLocale().warpswelcomeLine);
 				s.update();
 			}
 		}
 	}
 
 	public void removeWarp(Location loc) {
-		popSign(loc);
-		Iterator<Entry<UUID, Location>> it = warpList.entrySet().iterator();
-		while (it.hasNext()) {
-			Entry<UUID, Location> en = it.next();
-			if (en.getValue().equals(loc)) {
-				Player p = plugin.getServer().getPlayer(en.getKey());
-				if (p != null) {
-					p.sendMessage(ChatColor.RED + plugin.myLocale().warpssignRemoved);
-				} else {
-					plugin.getMessages().setMessage(en.getKey(), ChatColor.RED + plugin.myLocale().warpssignRemoved);
-				}
-				it.remove();
+		UUID owner = locationToOwner.remove(loc); // O(1) lookup
+		if (owner != null) {
+			popSign(loc);
+			warpList.remove(owner);
+			Player p = plugin.getServer().getPlayer(owner);
+			if (p != null) {
+				p.sendMessage(ChatColor.RED + plugin.myLocale().warpssignRemoved);
+			} else {
+				plugin.getMessages().setMessage(owner, ChatColor.RED + plugin.myLocale().warpssignRemoved);
 			}
+			saveWarpList(true);
 		}
-		saveWarpList(true);
 	}
 
 	public Set<UUID> listWarps() {
@@ -213,11 +211,7 @@ public class WarpSigns implements Listener {
 	}
 
 	public String getWarpOwner(Location location) {
-		for (UUID playerUUID : warpList.keySet()) {
-			if (location.equals(warpList.get(playerUUID))) {
-				return plugin.getServer().getOfflinePlayer(playerUUID).getName();
-			}
-		}
-		return "";
+		UUID owner = locationToOwner.get(location);
+		return owner != null ? plugin.getServer().getOfflinePlayer(owner).getName() : "";
 	}
 }

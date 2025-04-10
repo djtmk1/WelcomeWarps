@@ -61,17 +61,14 @@ public class WarpPanel implements Listener {
                 } else {
                     ItemMeta meta = playerSign.getItemMeta();
                     meta.setDisplayName(playerName);
-
                     Location signLocation = plugin.getWarpSignsListener().getWarp(playerUUID);
-                    if (Tag.SIGNS.isTagged(signLocation.getBlock().getType())) {
+                    if (signLocation != null && Tag.SIGNS.isTagged(signLocation.getBlock().getType())) {
                         Sign sign = (Sign) signLocation.getBlock().getState();
                         meta.setLore(Arrays.asList(sign.getLines()));
                     }
-
                     playerSign.setItemMeta(meta);
                     signpostCache.put(playerUUID, playerSign);
                 }
-
                 CPItem newButton = new CPItem(playerSign, "wwarp " + playerName);
                 warpPanel.get(panelNumber).setItem(slot++, newButton.getItem());
             } else {
@@ -96,21 +93,21 @@ public class WarpPanel implements Listener {
         }
     }
 
+    public void invalidateCache(UUID playerUUID) {
+        signpostCache.remove(playerUUID);
+        updatePanel();
+    }
+
     public Inventory getWarpPanel(int panelNumber) {
-        if (panelNumber < 0) {
-            panelNumber = 0;
-        } else if (panelNumber > warpPanel.size() - 1) {
-            panelNumber = warpPanel.size() - 1;
-        }
+        if (panelNumber < 0) panelNumber = 0;
+        else if (panelNumber > warpPanel.size() - 1) panelNumber = warpPanel.size() - 1;
         return warpPanel.get(panelNumber);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
-        if (!title.startsWith(plugin.myLocale().warpsTitle + " #")) {
-            return;
-        }
+        if (!title.startsWith(plugin.myLocale().warpsTitle + " #")) return;
 
         Player player = (Player) event.getWhoClicked();
         event.setCancelled(true);
@@ -123,9 +120,7 @@ public class WarpPanel implements Listener {
         Inventory inventory = event.getInventory();
         ItemStack clicked = event.getCurrentItem();
 
-        if (event.getRawSlot() >= inventory.getSize() || clicked == null || clicked.getType() == Material.AIR) {
-            return;
-        }
+        if (event.getRawSlot() >= inventory.getSize() || clicked == null || clicked.getType() == Material.AIR) return;
 
         int panelNumber;
         try {
