@@ -24,7 +24,7 @@ permissions:
     default: true
   welcomewarpsigns.add:
     description: Allows players to create warp signs.
-    default: op
+    default: true
   welcomewarpsigns.admin:
     description: Grants access to all admin commands.
     default: op

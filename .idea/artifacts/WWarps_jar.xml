@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="WWarps:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/WWarps_jar</output-path>
+    <root id="archive" name="WWarps.jar">
+      <element id="module-output" name="WelcomeWarpSigns" />
+    </root>
+  </artifact>
+</component>
