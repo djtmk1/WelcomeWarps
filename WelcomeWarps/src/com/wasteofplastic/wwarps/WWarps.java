@@ -2,11 +2,12 @@ package com.wasteofplastic.wwarps;
 
 import com.wasteofplastic.wwarps.commands.AdminCmd;
 import com.wasteofplastic.wwarps.commands.WarpCmd;
+import com.wasteofplastic.wwarps.database.DataBase;
 import com.wasteofplastic.wwarps.listeners.JoinLeaveEvents;
 import com.wasteofplastic.wwarps.panels.WarpPanel;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Tag; // Import for Tag.SIGNS
+import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.PluginManager;
@@ -27,33 +28,28 @@ public class WWarps extends JavaPlugin {
 		Material space1Type = space1.getType();
 		Material space2Type = space2.getType();
 
-		// Check for portals
 		if (space1Type == Material.NETHER_PORTAL || groundType == Material.NETHER_PORTAL || space2Type == Material.NETHER_PORTAL ||
 				space1Type == Material.END_PORTAL || groundType == Material.END_PORTAL || space2Type == Material.END_PORTAL) {
 			return false;
 		}
 
-		// Check if ground is air
 		if (groundType == Material.AIR) {
 			return false;
 		}
 
-		// Check for liquids
 		if (groundType == Material.WATER || groundType == Material.LAVA ||
 				space1Type == Material.WATER || space1Type == Material.LAVA ||
 				space2Type == Material.WATER || space2Type == Material.LAVA) {
 			return false;
 		}
 
-		// Check for unsafe ground materials, using Tag.SIGNS
 		if (groundType == Material.CACTUS ||
 				groundType == Material.OAK_BOAT ||
 				groundType == Material.OAK_FENCE ||
-				Tag.SIGNS.isTagged(groundType)) { // Replaces SIGN and WALL_SIGN
+				Tag.SIGNS.isTagged(groundType)) {
 			return false;
 		}
 
-		// Check that the space above is not solid, allowing signs
 		return (!space1Type.isSolid() || Tag.SIGNS.isTagged(space1Type)) &&
 				(!space2Type.isSolid() || Tag.SIGNS.isTagged(space2Type));
 	}
@@ -62,6 +58,7 @@ public class WWarps extends JavaPlugin {
 	private WarpSigns warpSignsListener;
 	private WarpPanel warpPanel;
 	private Messages messages;
+	private DataBase database;
 	private static WWarps plugin;
 
 	public Messages getMessages() {
@@ -83,6 +80,17 @@ public class WWarps extends JavaPlugin {
 		return warpSignsListener;
 	}
 
+	public DataBase getDatabase() {
+		if (database == null) {
+			database = new DataBase(this);
+		}
+		return database;
+	}
+
+	public Locale myLocale() {
+		return availableLocales.getOrDefault("locale", new Locale(this, "locale"));
+	}
+
 	public void loadPluginConfig() {
 		try {
 			getConfig();
@@ -92,21 +100,16 @@ public class WWarps extends JavaPlugin {
 		availableLocales.put("locale", new Locale(this, "locale"));
 		Settings.debug = getConfig().getInt("debug", 0);
 		Settings.useWarpPanel = getConfig().getBoolean("usewarppanel", true);
-		Settings.worldName = getConfig().getStringList("signworlds");
-	}
-
-	public Locale myLocale() {
-		return availableLocales.get("locale");
 	}
 
 	@Override
 	public void onDisable() {
 		try {
-			if (warpSignsListener != null) {
-				warpSignsListener.saveWarpList(false);
+			if (database != null) {
+				database.closeConnection();
 			}
 		} catch (final Exception e) {
-			getLogger().severe("Something went wrong saving files!");
+			getLogger().severe("Something went wrong closing database!");
 			e.printStackTrace();
 		}
 	}
@@ -123,7 +126,8 @@ public class WWarps extends JavaPlugin {
 		getCommand("wwadmin").setExecutor(adminCmd);
 		registerEvents();
 		getServer().getScheduler().runTask(this, () -> {
-			getWarpSignsListener().loadWarpList();
+			warpSignsListener = new WarpSigns(this);
+			getServer().getPluginManager().registerEvents(warpSignsListener, this);
 			warpPanel = new WarpPanel(this);
 			getServer().getPluginManager().registerEvents(warpPanel, this);
 		});
@@ -132,8 +136,6 @@ public class WWarps extends JavaPlugin {
 	public void registerEvents() {
 		final PluginManager manager = getServer().getPluginManager();
 		manager.registerEvents(new JoinLeaveEvents(this), this);
-		warpSignsListener = new WarpSigns(this);
-		manager.registerEvents(warpSignsListener, this);
 	}
 
 	public static WWarps getPlugin() {
