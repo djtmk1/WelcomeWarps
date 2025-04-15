@@ -1,77 +1,18 @@
-package com.wasteofplastic.wwarps.util;
+package com.djtmk.wwarps.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
+import com.djtmk.wwarps.WWarps;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import com.wasteofplastic.wwarps.WWarps;
-
 public class Util {
 	private static final WWarps plugin = WWarps.getPlugin();
-
-	public static YamlConfiguration loadYamlFile(String file) {
-		File dataFolder = plugin.getDataFolder();
-		File yamlFile = new File(dataFolder, file);
-		YamlConfiguration config = null;
-		if (yamlFile.exists()) {
-			try {
-				config = YamlConfiguration.loadConfiguration(yamlFile);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			config = new YamlConfiguration();
-			plugin.getLogger().info("No " + file + " found. Creating it...");
-			try {
-				if (plugin.getResource(file) != null) {
-					plugin.getLogger().info("Using default found in jar file.");
-					plugin.saveResource(file, false);
-					config = YamlConfiguration.loadConfiguration(yamlFile);
-				} else {
-					config.save(yamlFile);
-				}
-			} catch (Exception e) {
-				plugin.getLogger().severe("Could not create the " + file + " file!");
-			}
-		}
-		return config;
-	}
-
-	public static void saveYamlFile(YamlConfiguration yamlFile, String fileLocation) {
-		File dataFolder = plugin.getDataFolder();
-		File file = new File(dataFolder, fileLocation);
-		try {
-			yamlFile.save(file);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	public static List<String> chop(ChatColor color, String longLine, int length) {
-		List<String> result = new ArrayList<>();
-		for (int i = 0; i < longLine.length(); i += length) {
-			int endIndex = Math.min(i + length, longLine.length());
-			String line = longLine.substring(i, endIndex);
-			if (endIndex < longLine.length()) {
-				if (!line.endsWith(" ") && !longLine.substring(endIndex, endIndex + 1).equals(" ")) {
-					int lastSpace = line.lastIndexOf(" ");
-					if (lastSpace != -1 && lastSpace < line.length()) {
-						line = line.substring(0, lastSpace);
-						i -= (length - lastSpace - 1);
-					}
-				}
-			}
-			result.add(color + line);
-		}
-		return result;
-	}
 
 	public static float blockFaceToFloat(BlockFace face) {
 		switch (face) {
@@ -156,5 +97,24 @@ public class Util {
 			}
 		}
 		return returned;
+	}
+
+	public static List<String> chop(ChatColor color, String longLine, int length) {
+		List<String> result = new ArrayList<>();
+		for (int i = 0; i < longLine.length(); i += length) {
+			int endIndex = Math.min(i + length, longLine.length());
+			String line = longLine.substring(i, endIndex);
+			if (endIndex < longLine.length()) {
+				if (!line.endsWith(" ") && !longLine.substring(endIndex, endIndex + 1).equals(" ")) {
+					int lastSpace = line.lastIndexOf(" ");
+					if (lastSpace != -1 && lastSpace < line.length()) {
+						line = line.substring(0, lastSpace);
+						i -= (length - lastSpace - 1);
+					}
+				}
+			}
+			result.add(color + line);
+		}
+		return result;
 	}
 }

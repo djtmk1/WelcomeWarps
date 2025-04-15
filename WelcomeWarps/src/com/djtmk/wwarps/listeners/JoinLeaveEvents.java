@@ -1,6 +1,6 @@
-package com.wasteofplastic.wwarps.listeners;
+package com.djtmk.wwarps.listeners;
 
-import com.wasteofplastic.wwarps.WWarps;
+import com.djtmk.wwarps.WWarps;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;

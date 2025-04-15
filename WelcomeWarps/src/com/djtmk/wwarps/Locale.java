@@ -1,4 +1,4 @@
-package com.wasteofplastic.wwarps;
+package com.djtmk.wwarps;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 

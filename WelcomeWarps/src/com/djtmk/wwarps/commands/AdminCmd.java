@@ -1,21 +1,18 @@
-package com.wasteofplastic.wwarps.commands;
+package com.djtmk.wwarps.commands;
 
+import com.djtmk.wwarps.Settings;
+import com.djtmk.wwarps.WWarps;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.wasteofplastic.wwarps.Settings;
-import com.wasteofplastic.wwarps.WWarps;
-
-import java.sql.SQLException;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 
 public class AdminCmd implements CommandExecutor {
 	private final WWarps plugin;
-	private final long DB_TIMEOUT_MS = 5000; // 5 seconds timeout
+	private final long DB_TIMEOUT_MS = 5000;
 
 	public AdminCmd(WWarps plugin) {
 		this.plugin = plugin;
@@ -48,7 +45,8 @@ public class AdminCmd implements CommandExecutor {
 						return true;
 					}
 					plugin.reloadConfig();
-					plugin.loadPluginConfig();
+					Settings.loadConfig();
+					plugin.getLogger().info("Configuration reloaded by " + sender.getName());
 					sender.sendMessage(ChatColor.YELLOW + plugin.myLocale().reloadconfigReloaded);
 					return true;
 				case "list":
@@ -57,7 +55,7 @@ public class AdminCmd implements CommandExecutor {
 						return true;
 					}
 					sender.sendMessage(ChatColor.YELLOW + "Active Warps:");
-					plugin.getWarpSignsListener().listWarps().forEach(uuid -> {
+					plugin.getWarpSigns().listWarps().forEach(uuid -> {
 						String name = plugin.getServer().getOfflinePlayer(uuid).getName();
 						sender.sendMessage(ChatColor.WHITE + "- " + (name != null ? name : uuid.toString()));
 					});
@@ -72,10 +70,9 @@ public class AdminCmd implements CommandExecutor {
 						return true;
 					}
 					String targetName = split[1];
-					@SuppressWarnings("deprecation")
-					UUID targetUUID = plugin.getServer().getOfflinePlayer(targetName).getUniqueId();
-					if (plugin.getWarpSignsListener().getWarp(targetUUID) != null) {
-						plugin.getWarpSignsListener().removeWarp(targetUUID);
+					UUID targetUUID = plugin.getDatabase().getUUIDByName(targetName);
+					if (targetUUID != null && plugin.getWarpSigns().getWarp(targetUUID) != null) {
+						plugin.getWarpSigns().removeWarp(targetUUID);
 						sender.sendMessage(ChatColor.GREEN + "Removed warp for " + targetName);
 					} else {
 						sender.sendMessage(ChatColor.RED + plugin.myLocale().errorNoPlayer);
