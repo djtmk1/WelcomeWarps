@@ -13,9 +13,3 @@ To destroy or remove a warp, the player should destroy or remove the sign. If si
 The other lines on the sign can say anything and are ignored by the plugin.
 
 The safety of a warp is checked before a player warps and if unsafe the warp is not allowed.
-
-ToDo List: 
-==================
-
-1. Add a filter for GUIs
-2. Add SQLIte DB
